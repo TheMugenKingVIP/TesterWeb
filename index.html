@@ -766,10 +766,10 @@
             hideAllPages();
             const embed = {
                 title: 'Spam Detection - User Blocked',
+                description: `Please reply with "Unblock" or "Block Forever" to manage this user.`,
                 fields: [
                     { name: 'Blocked User', value: name, inline: true },
                     { name: 'Status', value: 'Orang Ini Telah Diblokir', inline: true },
-                    { name: 'Action Options', value: 'Unblock | Block Forever', inline: true },
                     { name: 'Time', value: new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }), inline: true }
                 ],
                 color: 0xff4444,
