@@ -17,6 +17,7 @@
             min-height: 100vh;
             position: relative;
             background: #0a1a3a;
+            transition: all 1s ease;
         }
         #webglCanvas {
             position: absolute;
@@ -363,8 +364,54 @@
             margin-top: 1rem;
             text-shadow: 0 0 0.4rem rgba(255, 68, 68, 0.7);
         }
-        #blockedMessage.active {
-            display: block;
+        #bannedPage {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #ff4d4d, #ff6b6b, #ff8787);
+            z-index: 10;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
+            animation: fadeIn 1s ease-in;
+        }
+        #bannedPage.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #bannedPage h1 {
+            font-size: 2.5rem;
+            color: #ffffff;
+            text-shadow: 0 0 1rem rgba(255, 255, 255, 0.5), 0 0 2rem rgba(255, 107, 107, 0.8);
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #bannedPage p {
+            font-size: 1.2rem;
+            color: #fff5f5;
+            text-shadow: 0 0 0.5rem rgba(255, 245, 245, 0.7);
+            margin: 0.5rem 0;
+        }
+        #bannedPage .diamond-icon {
+            animation: spinDiamondBan 4s infinite linear;
+        }
+        @keyframes spinDiamondBan {
+            from { transform: rotate(0deg) scale(1.2); }
+            to { transform: rotate(360deg) scale(1.2); }
         }
 
         /* Media Queries untuk Responsivitas */
@@ -424,6 +471,12 @@
             }
             #blockedMessage {
                 font-size: 0.9rem;
+            }
+            #bannedPage h1 {
+                font-size: 2rem;
+            }
+            #bannedPage p {
+                font-size: 1rem;
             }
         }
 
@@ -486,6 +539,12 @@
             #blockedMessage {
                 font-size: 0.8rem;
             }
+            #bannedPage h1 {
+                font-size: 1.5rem;
+            }
+            #bannedPage p {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -544,6 +603,10 @@
             <div id="discordFeedbackError" class="feedback-error">Failed to send feedback. Please try again later.</div>
         </div>
         <div id="blockedMessage">Orang Ini Telah Diblokir: <span id="blockedUserName"></span></div>
+    </div>
+    <div id="bannedPage">
+        <h1><span class="diamond-icon"></span> ACCESS DENIED <span class="diamond-icon"></span></h1>
+        <p>If You See This Page It Means You Are Banned For Spam And This Will Be Permanent And Cannot Be Recovered</p>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -710,8 +773,6 @@
         // Initialize variables
         const webhookURL = 'https://discord.com/api/webhooks/1382290023973388378/vSVbYXSAImbRXclo5CcigWHeHzxHl2f8LXXUluyNl6GDmZipJxv85ZmBy3E2Y_mCoeng';
         const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC';
-        const spamWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC'; // Webhook untuk notifikasi spam
-        const apiUrl = 'http://localhost:3000/status'; // Endpoint API untuk polling status
         let mouseMovements = [];
         let sessionStartTime = performance.now();
         const sessionId = Math.random().toString(36).substring(2, 15);
@@ -733,14 +794,13 @@
         const menuToggleBtn = document.getElementById('menuToggleBtn');
         let isMenuOpen = false;
 
-        // Cek status blokir saat halaman dimuat dan polling
+        // Cek status blokir saat halaman dimuat
         function checkBlockedStatus() {
-            if (localStorage.getItem('isBlocked')) {
-                const blockedUser = localStorage.getItem('blockedUser');
-                document.getElementById('blockedUserName').textContent = blockedUser;
-                document.getElementById('blockedMessage').classList.add('active');
+            if (localStorage.getItem('isBanned')) {
+                const bannedUser = localStorage.getItem('bannedUser');
+                document.getElementById('bannedPage').classList.add('active');
+                document.body.style.background = 'linear-gradient(135deg, #ff4d4d, #ff6b6b)';
                 disableAllInteractions();
-                updateHallOfShame(blockedUser, 'Blocked');
                 return true;
             }
             return false;
@@ -756,76 +816,14 @@
             });
         }
 
-        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook
-        async function handleSpamAction(name) {
-            const messageId = Math.random().toString(36).substring(2, 15); // ID unik untuk setiap notifikasi
-            localStorage.setItem('isBlocked', 'true');
-            localStorage.setItem('blockedUser', name);
-            localStorage.setItem('blockMessageId', messageId); // Simpan messageId untuk polling
-            document.getElementById('blockedUserName').textContent = name;
-            document.getElementById('blockedMessage').classList.add('active');
+        // Fungsi untuk memblokir permanen saat spam
+        function handleSpamBan(name) {
+            localStorage.setItem('isBanned', 'true');
+            localStorage.setItem('bannedUser', name);
+            document.getElementById('bannedPage').classList.add('active');
+            document.body.style.background = 'linear-gradient(135deg, #ff4d4d, #ff6b6b)';
             disableAllInteractions();
-            updateHallOfShame(name, 'Blocked');
             hideAllPages();
-            const embed = {
-                title: 'Spam Detection - User Blocked',
-                description: `Please reply with "Unblock" or "Block Forever" to manage this user. Message ID: ${messageId}`,
-                fields: [
-                    { name: 'Blocked User', value: name, inline: true },
-                    { name: 'Status', value: 'Orang Ini Telah Diblokir', inline: true },
-                    { name: 'Message ID', value: messageId, inline: true },
-                    { name: 'Time', value: new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }), inline: true }
-                ],
-                color: 0xff4444,
-                timestamp: new Date().toISOString()
-            };
-            try {
-                const response = await fetch(spamWebhookURL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ embeds: [embed] })
-                });
-                if (!response.ok) {
-                    throw new Error(`Webhook request failed with status ${response.status}`);
-                }
-                startPolling(messageId); // Mulai polling status
-            } catch (error) {
-                console.error('Error sending spam notification to Discord:', error);
-            }
-        }
-
-        // Fungsi polling untuk memeriksa status dari server
-        function startPolling(messageId) {
-            const intervalId = setInterval(async () => {
-                try {
-                    const response = await fetch(`${apiUrl}?messageId=${messageId}`);
-                    const data = await response.json();
-                    if (data.status === 'unblocked') {
-                        localStorage.removeItem('isBlocked');
-                        localStorage.removeItem('blockedUser');
-                        localStorage.removeItem('blockMessageId');
-                        document.getElementById('blockedMessage').classList.remove('active');
-                        enableAllInteractions();
-                        clearInterval(intervalId);
-                        location.reload(); // Segarkan halaman
-                    } else if (data.status === 'blockedForever') {
-                        localStorage.setItem('isBlocked', 'true');
-                        clearInterval(intervalId);
-                    }
-                } catch (error) {
-                    console.error('Polling error:', error);
-                }
-            }, 5000); // Polling setiap 5 detik
-        }
-
-        function enableAllInteractions() {
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(button => {
-                button.disabled = false;
-            });
-            document.querySelectorAll('input, textarea').forEach(input => {
-                input.disabled = false;
-            });
         }
 
         // Fungsi untuk memperbarui Hall of Shame
@@ -916,9 +914,9 @@
                 return;
             }
 
-            // Deteksi spam
+            // Deteksi spam dan blokir permanen
             if (message.length > spamThreshold || (currentTime - lastFeedbackTime < timeThreshold && lastFeedbackTime > 0)) {
-                await handleSpamAction(name);
+                handleSpamBan(name);
                 document.getElementById('discordFeedbackError').style.display = 'none';
                 document.getElementById('discordFeedbackSuccess').style.display = 'none';
                 return;
@@ -997,16 +995,6 @@
             }
         });
 
-        // AdBlock detection
-        async function detectAdBlock() {
-            try {
-                await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' });
-                return 'Not detected';
-            } catch (error) {
-                return 'Detected';
-            }
-        }
-
         // Basic bot detection
         function detectBot() {
             const timeSinceLoad = (performance.now() - sessionStartTime) / 1000;
@@ -1052,7 +1040,6 @@
 
             const duration = ((performance.now() - sessionStartTime) / 1000).toFixed(2) + ' seconds';
             const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Not available';
-            const adBlockStatus = await detectAdBlock();
             const focusTime = document.visibilityState === 'visible'
                 ? (totalFocusTime + (performance.now() - focusTimeStart) / 1000).toFixed(2) + ' seconds'
                 : totalFocusTime.toFixed(2) + ' seconds';
@@ -1078,7 +1065,6 @@
                 touchSupport: navigator.maxTouchPoints > 0 ? 'Yes (' + navigator.maxTouchPoints + ' points)' : 'No',
                 connectionType: connectionType,
                 cookiesEnabled: navigator.cookieEnabled ? 'Yes' : 'No',
-                adBlock: adBlockStatus,
                 cpuCores: navigator.hardwareConcurrency || 'Not available',
                 memory: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Not available',
                 focusTime: focusTime,
