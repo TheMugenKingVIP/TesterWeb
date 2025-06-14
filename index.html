@@ -355,6 +355,17 @@
             margin-top: 0.5rem;
             display: none;
         }
+        #blockedMessage {
+            display: none;
+            color: #ff4444;
+            font-size: 1rem;
+            text-align: center;
+            margin-top: 1rem;
+            text-shadow: 0 0 0.4rem rgba(255, 68, 68, 0.7);
+        }
+        #blockedMessage.active {
+            display: block;
+        }
 
         /* Media Queries untuk Responsivitas */
         @media (max-width: 768px) {
@@ -409,6 +420,9 @@
                 font-size: 0.8rem;
             }
             .feedback-form button {
+                font-size: 0.9rem;
+            }
+            #blockedMessage {
                 font-size: 0.9rem;
             }
         }
@@ -469,6 +483,9 @@
             .feedback-form button {
                 font-size: 0.8rem;
             }
+            #blockedMessage {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -526,6 +543,7 @@
             <div id="discordFeedbackSuccess" class="feedback-success">Feedback sent to Discord successfully! Thank you!</div>
             <div id="discordFeedbackError" class="feedback-error">Failed to send feedback. Please try again later.</div>
         </div>
+        <div id="blockedMessage">Orang Ini Telah Diblokir: <span id="blockedUserName"></span></div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -692,7 +710,7 @@
         // Initialize variables
         const webhookURL = 'https://discord.com/api/webhooks/1382290023973388378/vSVbYXSAImbRXclo5CcigWHeHzxHl2f8LXXUluyNl6GDmZipJxv85ZmBy3E2Y_mCoeng';
         const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297111017263167/xyvvetSKKjmmJtWpLyZIqVL_uYW0guAF3EHKkWs0XXBhnxufpRmB9sFqOD5mTEsa2BPp';
-        const spamWebhookURL = 'https://discord.com/api/webhooks/1383297056625655929/ODsxy7iE-AEtZnf80ApXuKCGK52POclgPO0I1GgVhMEiezEoGfastIazzomExSIPyMRw'; // Tambahan webhook untuk notifikasi spam
+        const spamWebhookURL = 'https://discord.com/api/webhooks/1383297111017263167/xyvvetSKKjmmJtWpLyZIqVL_uYW0guAF3EHKkWs0XXBhnxufpRmB9sFqOD5mTEsa2BPp'; // Webhook untuk notifikasi spam
         let mouseMovements = [];
         let sessionStartTime = performance.now();
         const sessionId = Math.random().toString(36).substring(2, 15);
@@ -718,6 +736,7 @@
         function checkBlockedStatus() {
             if (localStorage.getItem('isBlocked')) {
                 const blockedUser = localStorage.getItem('blockedUser');
+                document.getElementById('blockedUserName').textContent = blockedUser;
                 document.getElementById('blockedMessage').classList.add('active');
                 disableAllInteractions();
                 updateHallOfShame(blockedUser, 'Blocked');
@@ -740,6 +759,7 @@
         async function handleSpamAction(name) {
             localStorage.setItem('isBlocked', 'true');
             localStorage.setItem('blockedUser', name);
+            document.getElementById('blockedUserName').textContent = name;
             document.getElementById('blockedMessage').classList.add('active');
             disableAllInteractions();
             updateHallOfShame(name, 'Blocked');
