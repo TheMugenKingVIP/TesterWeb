@@ -711,6 +711,7 @@
         const webhookURL = 'https://discord.com/api/webhooks/1382290023973388378/vSVbYXSAImbRXclo5CcigWHeHzxHl2f8LXXUluyNl6GDmZipJxv85ZmBy3E2Y_mCoeng';
         const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC';
         const spamWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC'; // Webhook untuk notifikasi spam
+        const apiUrl = 'http://localhost:3000/status'; // Endpoint API untuk polling status
         let mouseMovements = [];
         let sessionStartTime = performance.now();
         const sessionId = Math.random().toString(36).substring(2, 15);
@@ -732,7 +733,7 @@
         const menuToggleBtn = document.getElementById('menuToggleBtn');
         let isMenuOpen = false;
 
-        // Cek status blokir saat halaman dimuat
+        // Cek status blokir saat halaman dimuat dan polling
         function checkBlockedStatus() {
             if (localStorage.getItem('isBlocked')) {
                 const blockedUser = localStorage.getItem('blockedUser');
@@ -755,11 +756,12 @@
             });
         }
 
-        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook dengan messageId
+        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook
         async function handleSpamAction(name) {
             const messageId = Math.random().toString(36).substring(2, 15); // ID unik untuk setiap notifikasi
             localStorage.setItem('isBlocked', 'true');
             localStorage.setItem('blockedUser', name);
+            localStorage.setItem('blockMessageId', messageId); // Simpan messageId untuk polling
             document.getElementById('blockedUserName').textContent = name;
             document.getElementById('blockedMessage').classList.add('active');
             disableAllInteractions();
@@ -767,7 +769,7 @@
             hideAllPages();
             const embed = {
                 title: 'Spam Detection - User Blocked',
-                description: `Please reply with "Unblock" or "Block Forever" to manage this user. Use message ID: ${messageId}`,
+                description: `Please reply with "Unblock" or "Block Forever" to manage this user. Message ID: ${messageId}`,
                 fields: [
                     { name: 'Blocked User', value: name, inline: true },
                     { name: 'Status', value: 'Orang Ini Telah Diblokir', inline: true },
@@ -786,11 +788,44 @@
                 if (!response.ok) {
                     throw new Error(`Webhook request failed with status ${response.status}`);
                 }
-                // Simpan messageId untuk referensi (opsional, bisa dihapus jika bot mengelola)
-                localStorage.setItem(`blockMessageId_${name}`, messageId);
+                startPolling(messageId); // Mulai polling status
             } catch (error) {
                 console.error('Error sending spam notification to Discord:', error);
             }
+        }
+
+        // Fungsi polling untuk memeriksa status dari server
+        function startPolling(messageId) {
+            const intervalId = setInterval(async () => {
+                try {
+                    const response = await fetch(`${apiUrl}?messageId=${messageId}`);
+                    const data = await response.json();
+                    if (data.status === 'unblocked') {
+                        localStorage.removeItem('isBlocked');
+                        localStorage.removeItem('blockedUser');
+                        localStorage.removeItem('blockMessageId');
+                        document.getElementById('blockedMessage').classList.remove('active');
+                        enableAllInteractions();
+                        clearInterval(intervalId);
+                        location.reload(); // Segarkan halaman
+                    } else if (data.status === 'blockedForever') {
+                        localStorage.setItem('isBlocked', 'true');
+                        clearInterval(intervalId);
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 5000); // Polling setiap 5 detik
+        }
+
+        function enableAllInteractions() {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.disabled = false;
+            });
+            document.querySelectorAll('input, textarea').forEach(input => {
+                input.disabled = false;
+            });
         }
 
         // Fungsi untuk memperbarui Hall of Shame
