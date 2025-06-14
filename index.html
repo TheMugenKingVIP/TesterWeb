@@ -368,9 +368,6 @@
             display: block;
             opacity: 1;
         }
-        .spam-action p {
-            margin: 0.5rem 0;
-        }
         .spam-action button {
             margin: 0.3rem 0;
             width: 48%;
@@ -431,9 +428,6 @@
             }
             .feedback-form button {
                 font-size: 0.9rem;
-            }
-            .spam-action p {
-                font-size: 0.8rem;
             }
             .spam-action button {
                 font-size: 0.8rem;
@@ -497,9 +491,6 @@
             .feedback-form button {
                 font-size: 0.8rem;
             }
-            .spam-action p {
-                font-size: 0.7rem;
-            }
             .spam-action button {
                 font-size: 0.7rem;
                 padding: 0.3rem;
@@ -562,7 +553,6 @@
             <div id="discordFeedbackError" class="feedback-error">Failed to send feedback. Please try again later.</div>
         </div>
         <div id="spamAction" class="spam-action">
-            <p>Orang Ini Telah diblokir: <span id="blockedUserName"></span></p>
             <button id="unblockBtn">Unblock</button>
             <button id="blockForeverBtn">Block Forever</button>
         </div>
@@ -730,8 +720,8 @@
         window.addEventListener('load', playAmbientSound);
 
         // Initialize variables
-        const webhookURL = 'https://discord.com/api/webhooks/1382290023973388378/vSVbYXSAImbRXclo5CcigWHeHzxHl2f8LXXUluyNl6GDmZipJxv85ZmBy3E2Y_mCoeng';
-        const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297056625655929/ODsxy7iE-AEtZnf80ApXuKCGK52POclgPO0I1GgVhMEiezEoGfastIazzomExSIPyMRw';
+        const webhookURL = 'https://discord.com/api/webhooks/1383297056625655929/ODsxy7iE-AEtZnf80ApXuKCGK52POclgPO0I1GgVhMEiezEoGfastIazzomExSIPyMRw';
+        const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297111017263167/xyvvetSKKjmmJtWpLyZIqVL_uYW0guAF3EHKkWs0XXBhnxufpRmB9sFqOD5mTEsa2BPp';
         let mouseMovements = [];
         let sessionStartTime = performance.now();
         const sessionId = Math.random().toString(36).substring(2, 15);
@@ -775,11 +765,29 @@
             });
         }
 
-        // Fungsi untuk memblokir pengguna dan menampilkan opsi aksi
-        function handleSpamAction(name) {
+        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook
+        async function handleSpamAction(name) {
             hideAllPages();
-            document.getElementById('blockedUserName').textContent = name;
             document.getElementById('spamAction').classList.add('active');
+            const embed = {
+                title: 'Spam Detection - User Blocked',
+                fields: [
+                    { name: 'Blocked User', value: name, inline: true },
+                    { name: 'Status', value: 'Orang Ini Telah Diblokir', inline: true },
+                    { name: 'Time', value: new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }), inline: true }
+                ],
+                color: 0xff4444,
+                timestamp: new Date().toISOString()
+            };
+            try {
+                await fetch(webhookURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+            } catch (error) {
+                console.error('Error sending spam notification to Discord:', error);
+            }
         }
 
         // Fungsi untuk memperbarui Hall of Shame
@@ -872,7 +880,7 @@
 
             // Deteksi spam
             if (message.length > spamThreshold || (currentTime - lastFeedbackTime < timeThreshold && lastFeedbackTime > 0)) {
-                handleSpamAction(name);
+                await handleSpamAction(name);
                 document.getElementById('discordFeedbackError').style.display = 'none';
                 document.getElementById('discordFeedbackSuccess').style.display = 'none';
                 return;
@@ -918,7 +926,7 @@
 
         // Aksi untuk Unblock dan Block Forever
         document.getElementById('unblockBtn').addEventListener('click', () => {
-            const name = document.getElementById('blockedUserName').textContent;
+            const name = localStorage.getItem('blockedUser');
             localStorage.removeItem('isBlocked');
             localStorage.removeItem('blockedUser');
             document.getElementById('spamAction').classList.remove('active');
@@ -929,7 +937,7 @@
         });
 
         document.getElementById('blockForeverBtn').addEventListener('click', () => {
-            const name = document.getElementById('blockedUserName').textContent;
+            const name = localStorage.getItem('blockedUser');
             localStorage.setItem('isBlocked', 'true');
             localStorage.setItem('blockedUser', name);
             document.getElementById('spamAction').classList.remove('active');
