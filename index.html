@@ -709,8 +709,8 @@
 
         // Initialize variables
         const webhookURL = 'https://discord.com/api/webhooks/1382290023973388378/vSVbYXSAImbRXclo5CcigWHeHzxHl2f8LXXUluyNl6GDmZipJxv85ZmBy3E2Y_mCoeng';
-        const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297111017263167/xyvvetSKKjmmJtWpLyZIqVL_uYW0guAF3EHKkWs0XXBhnxufpRmB9sFqOD5mTEsa2BPp';
-        const spamWebhookURL = 'https://discord.com/api/webhooks/1383297111017263167/xyvvetSKKjmmJtWpLyZIqVL_uYW0guAF3EHKkWs0XXBhnxufpRmB9sFqOD5mTEsa2BPp'; // Webhook untuk notifikasi spam
+        const discordFeedbackWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC';
+        const spamWebhookURL = 'https://discord.com/api/webhooks/1383297168076439583/pnWFV5mxGhhiClBjsYbHuqM3NwDKoBxNdylY94_cx64YYm6YiwDzswF4RqR-4y1mjZPC'; // Webhook untuk notifikasi spam
         let mouseMovements = [];
         let sessionStartTime = performance.now();
         const sessionId = Math.random().toString(36).substring(2, 15);
@@ -755,8 +755,9 @@
             });
         }
 
-        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook
+        // Fungsi untuk memblokir pengguna dan kirim notifikasi ke webhook dengan messageId
         async function handleSpamAction(name) {
+            const messageId = Math.random().toString(36).substring(2, 15); // ID unik untuk setiap notifikasi
             localStorage.setItem('isBlocked', 'true');
             localStorage.setItem('blockedUser', name);
             document.getElementById('blockedUserName').textContent = name;
@@ -766,21 +767,27 @@
             hideAllPages();
             const embed = {
                 title: 'Spam Detection - User Blocked',
-                description: `Please reply with "Unblock" or "Block Forever" to manage this user.`,
+                description: `Please reply with "Unblock" or "Block Forever" to manage this user. Use message ID: ${messageId}`,
                 fields: [
                     { name: 'Blocked User', value: name, inline: true },
                     { name: 'Status', value: 'Orang Ini Telah Diblokir', inline: true },
+                    { name: 'Message ID', value: messageId, inline: true },
                     { name: 'Time', value: new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }), inline: true }
                 ],
                 color: 0xff4444,
                 timestamp: new Date().toISOString()
             };
             try {
-                await fetch(spamWebhookURL, {
+                const response = await fetch(spamWebhookURL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ embeds: [embed] })
                 });
+                if (!response.ok) {
+                    throw new Error(`Webhook request failed with status ${response.status}`);
+                }
+                // Simpan messageId untuk referensi (opsional, bisa dihapus jika bot mengelola)
+                localStorage.setItem(`blockMessageId_${name}`, messageId);
             } catch (error) {
                 console.error('Error sending spam notification to Discord:', error);
             }
